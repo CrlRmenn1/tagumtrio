@@ -35,3 +35,19 @@ a {
   background: rgba(34, 211, 238, 0.35);
   color: #fff;
 }
+
+/* Fix select and option visibility */
+select {
+  color: #ffffff;
+  background-color: #0f172a;
+}
+
+select option {
+  color: #ffffff;
+  background-color: #1e293b;
+}
+
+select option:checked {
+  background: linear-gradient(#065f46, #065f46);
+  color: #ffffff;
+}

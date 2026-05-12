@@ -87,11 +87,11 @@ export default function Commissions() {
                 <select
                   value={selectedEmployeeId}
                   onChange={(event) => setSelectedEmployeeId(event.target.value)}
-                  className="mt-1 w-full bg-transparent text-sm text-white focus:outline-none"
+                  className="mt-1 w-full bg-slate-950 text-sm text-white focus:outline-none cursor-pointer"
                 >
-                  <option value="">All employees</option>
+                  <option value="" className="bg-slate-950 text-white">All employees</option>
                   {employees.map((employee) => (
-                    <option key={employee.employeeId} value={employee.employeeId}>{employee.employeeName}</option>
+                    <option key={employee.employeeId} value={employee.employeeId} className="bg-slate-950 text-white">{employee.employeeName}</option>
                   ))}
                 </select>
               </div>
