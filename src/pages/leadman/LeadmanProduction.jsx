@@ -225,8 +225,17 @@ export default function LeadmanProduction() {
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2"><Users className="w-5 h-5 text-cyan-400" /> Deployed Workers</h3>
-            <span className="text-sm text-slate-400">Current department roster</span>
+            <div>
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2"><Users className="w-5 h-5 text-cyan-400" /> Deployed Workers</h3>
+              <span className="text-sm text-slate-400 block mt-1">Current department roster</span>
+            </div>
+            <button onClick={() => {
+              if (deployedEmployees.length > 0) {
+                openScan(deployedEmployees[0])
+              }
+            }} disabled={deployedEmployees.length === 0} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-black rounded font-medium hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+              <ScanLine className="w-4 h-4" /> Scan QR
+            </button>
           </div>
 
           <div className="space-y-3">
@@ -236,16 +245,11 @@ export default function LeadmanProduction() {
               deployedEmployees.map((employee) => {
                 const employeeAttendance = getEmployeeAttendance(employee.employeeId).filter((record) => record.status === 'leadman_verified')
                 return (
-                  <div key={employee.employeeId} className="bg-slate-950 p-4 rounded-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-700 transition-colors">
-                    <div>
-                      <p className="text-white font-medium">{employee.employeeName}</p>
-                      <p className="text-sm text-slate-400">{employee.employeeId} • {employee.department}</p>
-                      <p className="text-xs text-slate-500 mt-1">Approved {formatDateTime(employee.approvedAt)}</p>
-                      <p className="text-xs text-slate-500 mt-1">Scans waiting for head verification: {employeeAttendance.length}</p>
-                    </div>
-                    <button onClick={() => openScan(employee)} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-black rounded font-medium">
-                      <ScanLine className="w-4 h-4" /> Scan QR
-                    </button>
+                  <div key={employee.employeeId} className="bg-slate-950 p-4 rounded-lg border border-slate-800 hover:border-slate-700 transition-colors">
+                    <p className="text-white font-medium">{employee.employeeName}</p>
+                    <p className="text-sm text-slate-400 mt-1">{employee.employeeId} • {employee.department}</p>
+                    <p className="text-xs text-slate-500 mt-1">Approved {formatDateTime(employee.approvedAt)}</p>
+                    <p className="text-xs text-slate-500 mt-1">Scans waiting for head verification: {employeeAttendance.length}</p>
                   </div>
                 )
               })

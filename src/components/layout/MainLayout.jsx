@@ -227,7 +227,7 @@ export default function MainLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-slate-950 border-b border-slate-800 hidden md:flex items-center justify-between px-6 shrink-0">
           <div className="flex-1"></div>
           <div className="flex items-center gap-4">
@@ -271,7 +271,7 @@ export default function MainLayout() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-4 sm:p-6 md:p-8"><div className="max-w-7xl mx-auto pb-12"><Outlet /></div></div>
+        <div className="flex-1 overflow-auto overflow-x-hidden p-4 sm:p-6 md:p-8"><div className="max-w-7xl mx-auto pb-12"><Outlet /></div></div>
       </main>
     </div>
   )
