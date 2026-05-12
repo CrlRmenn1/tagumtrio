@@ -8,11 +8,12 @@ import Login from './pages/Login'
 import RoleDashboard from './pages/RoleDashboard'
 import Dashboard from './pages/admin/Dashboard'
 import ProductionDashboard from './pages/production/ProductionDashboard'
-import PayrollReview from './pages/finance/PayrollReview'
 import Commissions from './pages/finance/Commissions'
+import EmployeePayroll from './pages/finance/EmployeePayroll'
+import PayrollPeriodView from './pages/finance/PayrollPeriodView'
+import FinanceArchive from './pages/finance/FinanceArchive'
 import EmployeeDirectory from './pages/HR/EmployeeDirectory'
 import EmployeeDashboard from './pages/employee/EmployeeDashboard'
-import EmployeePortal from './pages/converted/EmployeePortal'
 import MyAttendance from './pages/employee/MyAttendance'
 import MyPayslips from './pages/employee/MyPayslips'
 import ViewPayslip from './pages/employee/ViewPayslip'
@@ -31,11 +32,14 @@ export default function App() {
             <Route index element={<RoleDashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="production" element={<ProductionDashboard />} />
-            <Route path="payroll" element={<PayrollReview />} />
+            <Route path="payroll" element={<Commissions />} />
             <Route path="payroll/commissions" element={<Commissions />} />
+            <Route path="payroll/archive" element={<FinanceArchive />} />
+            <Route path="payroll/employee/:employeeId" element={<EmployeePayroll />} />
+            <Route path="payroll/employee/:employeeId/period/:periodKey" element={<PayrollPeriodView />} />
             <Route path="employees" element={<EmployeeDirectory />} />
             <Route path="requests" element={<MyAttendance />} />
-            <Route path="portal" element={<EmployeePortal />} />
+            <Route path="portal" element={<EmployeeDashboard />} />
             <Route path="portal/leaves" element={<MyAttendance />} />
             <Route path="portal/payslips" element={<MyPayslips />} />
             <Route path="portal/payslips/:id" element={<ViewPayslip />} />

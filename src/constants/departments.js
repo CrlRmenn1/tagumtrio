@@ -1,0 +1,17 @@
+export const DEPARTMENTS = [
+  'Sundry',
+  'Sorting',
+  'Assembly',
+  'Cold Press',
+  'Repair',
+  'Hot Press',
+  'Putty',
+  'Sunder',
+  'Spreadersizer',
+  'Packing/Classifying',
+  'Putty Make Up',
+  'Sand Paper',
+  'Paint Black',
+  'Bundle',
+  'Logo',
+]

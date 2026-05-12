@@ -2,7 +2,8 @@ import { Outlet, NavLink, Navigate, useNavigate } from 'react-router-dom'
 import PageTransition from '../ui/PageTransition'
 import { Bell, LogOut, QrCode, X, Users, Factory, Banknote, FileSpreadsheet, LayoutDashboard } from 'lucide-react'
 import { useAuth } from '../../context/auth-context'
-import { useState } from 'react'
+import { useQr } from '../../context/qr-context'
+import { useMemo, useState } from 'react'
 
 function cn(...inputs) {
   return inputs.filter(Boolean).join(' ')
@@ -19,8 +20,10 @@ const allNavItems = [
 
 export default function MainLayout() {
   const { user, logout } = useAuth()
+  const { getEmployeeDepartmentRequests, getEmployeeAttendance, getLeadmanDepartmentRequests, getLeadmanAttendance, getHeadPendingAttendance } = useQr()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   if (!user) {
     return <Navigate to="/login" replace />
@@ -31,6 +34,93 @@ export default function MainLayout() {
     navigate('/login')
   }
 
+  const leadmanDepartments = Array.isArray(user?.departments) && user.departments.length > 0
+    ? user.departments
+    : [user?.department || 'Sundry']
+
+  const employeeRequestCount = user?.role === 'employee' ? getEmployeeDepartmentRequests(user.id).filter((request) => request.status === 'pending').length : 0
+  const employeeWorkCount = user?.role === 'employee' ? getEmployeeAttendance(user.id).filter((record) => record.status === 'head_verified').length : 0
+  const leadmanRequestCount = user?.role === 'leadman'
+    ? leadmanDepartments.reduce((sum, department) => sum + getLeadmanDepartmentRequests(department).length, 0)
+    : 0
+  const leadmanPendingScanCount = user?.role === 'leadman'
+    ? leadmanDepartments.reduce((sum, department) => {
+        return sum + getLeadmanAttendance(department).filter((record) => record.status === 'leadman_verified').length
+      }, 0)
+    : 0
+  const headerCounts = user?.role === 'employee'
+    ? [
+        { label: 'Requests', value: employeeRequestCount },
+        { label: 'Work Logs', value: employeeWorkCount },
+      ]
+    : user?.role === 'leadman'
+      ? [
+          { label: 'Requests', value: leadmanRequestCount },
+          { label: 'Pending', value: leadmanPendingScanCount },
+        ]
+      : []
+
+  const notificationItems = useMemo(() => {
+    if (user?.role === 'employee') {
+      return [
+        ...getEmployeeDepartmentRequests(user.id)
+          .filter((request) => request.status === 'pending')
+          .map((request) => ({
+            title: `Department request: ${request.requestedDepartment}`,
+            detail: 'Waiting for leadman approval',
+            meta: request.requestedAt,
+          })),
+        ...getEmployeeAttendance(user.id)
+          .filter((record) => record.status === 'head_verified')
+          .slice(0, 3)
+          .map((record) => ({
+            title: `${record.department} work log`,
+            detail: `${Number(record.loggedHours || 0).toFixed(1)} hrs • ₱${Number(record.amount || 0).toLocaleString()}`,
+            meta: record.scannedAt,
+          })),
+      ]
+    }
+
+    if (user?.role === 'leadman') {
+      return [
+        ...leadmanDepartments.flatMap((department) => getLeadmanDepartmentRequests(department))
+          .filter((request) => request.status === 'pending')
+          .map((request) => ({
+            title: `Approve ${request.employeeName}`,
+            detail: `${request.employeeId} • wants ${request.requestedDepartment}`,
+            meta: request.requestedAt,
+          })),
+        ...leadmanDepartments.flatMap((department) => getLeadmanAttendance(department))
+          .filter((record) => record.status === 'leadman_verified')
+          .slice(0, 3)
+          .map((record) => ({
+            title: `${record.employeeName} scan awaiting head`,
+            detail: `${Number(record.loggedHours || 0).toFixed(1)} hrs • ${record.department}`,
+            meta: record.scannedAt,
+          })),
+      ]
+    }
+
+    if (user?.role === 'production_head' || user?.role === 'admin') {
+      return getHeadPendingAttendance().slice(0, 5).map((record) => ({
+        title: `${record.employeeName} verification pending`,
+        detail: `${record.department} • ${Number(record.loggedHours || 0).toFixed(1)} hrs`,
+        meta: record.leadmanVerifiedAt,
+      }))
+    }
+
+    return []
+  }, [
+    getEmployeeAttendance,
+    getEmployeeDepartmentRequests,
+    getHeadPendingAttendance,
+    getLeadmanAttendance,
+    getLeadmanDepartmentRequests,
+    leadmanDepartments,
+    user?.id,
+    user?.role,
+  ])
+
   if (user.role === 'employee' || user.role === 'leadman') {
     return (
       <div className="min-h-screen bg-slate-900 text-slate-200 flex flex-col">
@@ -39,8 +129,53 @@ export default function MainLayout() {
             <div className="bg-emerald-500 p-2 rounded-lg"><QrCode className="w-5 h-5 text-white" /></div>
             <h1 className="text-lg font-bold text-white">TriOPS</h1>
           </div>
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-400 hover:text-white transition-colors"><Bell className="w-5 h-5" /></button>
+          <div className="flex items-center gap-3 sm:gap-4">
+            {headerCounts.length > 0 && (
+              <div className="hidden sm:flex items-center gap-2">
+                {headerCounts.map((item) => (
+                  <div key={item.label} className="rounded-full border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-300">
+                    <span className="text-slate-500">{item.label}</span> <span className="text-white font-semibold">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="relative">
+              <button onClick={() => setNotificationsOpen((open) => !open)} className="relative p-2 text-slate-400 hover:text-white transition-colors" aria-expanded={notificationsOpen} aria-label="Toggle notifications">
+                <Bell className="w-5 h-5" />
+                {notificationItems.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div className="absolute right-0 top-12 z-50 w-[320px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl shadow-black/30">
+                  <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">Notifications</p>
+                      <p className="text-xs text-slate-500">Pending items and latest updates</p>
+                    </div>
+                    <button onClick={() => setNotificationsOpen(false)} className="text-slate-400 hover:text-white">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notificationItems.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-slate-400">No pending notifications.</div>
+                    ) : (
+                      <div className="divide-y divide-slate-800">
+                        {notificationItems.map((item, index) => (
+                          <div key={`${item.title}-${index}`} className="px-4 py-3 hover:bg-slate-900 transition-colors">
+                            <p className="text-sm font-medium text-white">{item.title}</p>
+                            <p className="text-xs text-slate-400 mt-1">{item.detail}</p>
+                            <p className="text-[11px] text-slate-500 mt-1">{new Date(item.meta).toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-slate-300 hidden sm:inline-block">{user.name}</span>
               <button onClick={handleLogout} className="text-slate-400 hover:text-rose-400 transition-colors p-2" title="Sign Out"><LogOut className="w-5 h-5" /></button>
@@ -95,7 +230,45 @@ export default function MainLayout() {
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
         <header className="h-16 bg-slate-950 border-b border-slate-800 hidden md:flex items-center justify-between px-6 shrink-0">
           <div className="flex-1"></div>
-          <div className="flex items-center gap-4"><button className="relative p-2 text-slate-400 hover:text-white transition-colors bg-slate-900 rounded-lg border border-slate-800"><Bell className="w-5 h-5" /><span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span></button></div>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <button onClick={() => setNotificationsOpen((open) => !open)} className="relative p-2 text-slate-400 hover:text-white transition-colors bg-slate-900 rounded-lg border border-slate-800" aria-expanded={notificationsOpen} aria-label="Toggle notifications">
+                <Bell className="w-5 h-5" />
+                {notificationItems.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div className="absolute right-0 top-12 z-50 w-[340px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl shadow-black/30">
+                  <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">Notifications</p>
+                      <p className="text-xs text-slate-500">Pending approvals and scan queue</p>
+                    </div>
+                    <button onClick={() => setNotificationsOpen(false)} className="text-slate-400 hover:text-white">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notificationItems.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-slate-400">No pending notifications.</div>
+                    ) : (
+                      <div className="divide-y divide-slate-800">
+                        {notificationItems.map((item, index) => (
+                          <div key={`${item.title}-${index}`} className="px-4 py-3 hover:bg-slate-900 transition-colors">
+                            <p className="text-sm font-medium text-white">{item.title}</p>
+                            <p className="text-xs text-slate-400 mt-1">{item.detail}</p>
+                            <p className="text-[11px] text-slate-500 mt-1">{new Date(item.meta).toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </header>
 
         <div className="flex-1 overflow-auto p-4 sm:p-6 md:p-8"><div className="max-w-7xl mx-auto pb-12"><Outlet /></div></div>

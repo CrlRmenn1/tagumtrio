@@ -44,9 +44,9 @@ function StatCard({ title, value, change, trend, icon: Icon }) {
 }
 
 export default function Dashboard() {
-	const { qrs, approveByHead } = useQr()
+	const { getHeadPendingAttendance, approveAttendanceByHead, formatDateTime } = useQr()
 	const { user } = useAuth()
-	const awaitingHead = qrs.filter(q => q.status === 'leadman_approved' && (user?.role === 'production_head' || user?.role === 'admin'))
+	const awaitingHead = getHeadPendingAttendance().filter(() => user?.role === 'production_head' || user?.role === 'admin')
 	return (<>
 		<div className="space-y-6">
 			<div>
@@ -113,12 +113,13 @@ export default function Dashboard() {
 					{awaitingHead.map((r) => (
 						<div key={r.id} className="flex items-center justify-between bg-slate-950 p-3 rounded-lg border border-slate-800">
 							<div>
-								<div className="text-sm text-slate-400">{r.id} • {new Date(r.leadmanAt).toLocaleTimeString()}</div>
-								<div className="text-white font-medium">{r.workerName} — {r.product} ({r.pieces} pcs)</div>
+								<div className="text-sm text-slate-400">{r.id} • {formatDateTime(r.leadmanVerifiedAt)}</div>
+								<div className="text-white font-medium">{r.employeeName} — {r.department} ({Number(r.loggedHours || 0).toFixed(1)} hrs)</div>
+								<p className="text-xs text-slate-500 mt-1">Scanned at {formatDateTime(r.scannedAt)}</p>
 							</div>
-									<div>
-										<button onClick={() => approveByHead(r.id, user?.id || 'ADM-001')} className="px-3 py-2 bg-amber-400 text-black rounded font-medium">Approve</button>
-									</div>
+							<div>
+								<button onClick={() => approveAttendanceByHead(r.id, user?.id || 'PRD-HEAD')} className="px-3 py-2 bg-amber-400 text-black rounded font-medium">Approve</button>
+							</div>
 						</div>
 					))}
 				</div>
