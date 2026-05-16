@@ -8,6 +8,8 @@ import LeadmanWorkers from './pages/leadman/LeadmanWorkers'
 import LeadmanDailyReport from './pages/leadman/LeadmanDailyReport'
 import MainLayout from './components/layout/MainLayout'
 import Login from './pages/Login'
+import Register from './pages/Register'
+import Landing from './pages/Landing'
 import RoleDashboard from './pages/RoleDashboard'
 import Dashboard from './pages/admin/Dashboard'
 import ProductionDashboard from './pages/production/ProductionDashboard'
@@ -30,7 +32,8 @@ export default function App() {
         <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<RoleDashboard />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<Landing />} />
 
           <Route path="/app/portal/*" element={<EmployeeLayout />}>
             <Route index element={<EmployeeDashboard />} />

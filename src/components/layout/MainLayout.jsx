@@ -10,11 +10,11 @@ function cn(...inputs) {
 }
 
 const allNavItems = [
-  { name: 'Analytics', href: '/app/dashboard', icon: LayoutDashboard, roles: ['admin', 'production_head', 'hr'] },
+  { name: 'Analytics', href: '/app/dashboard', icon: LayoutDashboard, roles: ['admin', 'production_head'] },
   { name: 'Production', href: '/app/production', icon: Factory, roles: ['admin', 'production_head', 'leadman'] },
   { name: 'Payroll', href: '/app/payroll', icon: Banknote, roles: ['admin', 'finance'] },
-  { name: 'Employees', href: '/app/employees', icon: Users, roles: ['admin', 'hr'] },
-  { name: 'Requests', href: '/app/requests', icon: FileSpreadsheet, roles: ['admin', 'hr', 'production_head'] },
+  { name: 'Employees', href: '/app/employees', icon: Users, roles: ['admin', 'production_head'] },
+  { name: 'Requests', href: '/app/requests', icon: FileSpreadsheet, roles: ['admin', 'production_head'] },
 ]
 
 export default function MainLayout() {

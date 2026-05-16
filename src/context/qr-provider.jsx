@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { QRContext } from './qr-context'
 import { DEPARTMENTS } from '../constants/departments'
+import { enqueueScan, pendingCount, trySyncOnce } from '../lib/offline/queue'
 
 const STORAGE_KEY = 'triops-demo-state'
 
@@ -182,6 +183,38 @@ export function QRProvider({ children }) {
   const [attendanceRecords, setAttendanceRecords] = useState(initialState.attendanceRecords)
   const [payments, setPayments] = useState(initialState.payments || [])
   const [leaveRequests, setLeaveRequests] = useState(initialState.leaveRequests || [])
+  const [syncPending, setSyncPending] = useState(0)
+
+  // device id for offline records
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    let did = window.localStorage.getItem('tagum_device_id')
+    if (!did) {
+      did = `DEV-${Math.random().toString(36).slice(2, 9)}`
+      window.localStorage.setItem('tagum_device_id', did)
+    }
+  }, [])
+
+  async function refreshPendingCount() {
+    try {
+      const c = await pendingCount()
+      setSyncPending(c)
+    } catch { /* ignore */ }
+  }
+
+  useEffect(() => {
+    refreshPendingCount()
+    function onlineHandler() {
+      // try to sync when back online
+      trySyncOnce().then(() => refreshPendingCount())
+    }
+    window.addEventListener('online', onlineHandler)
+    const interval = setInterval(() => trySyncOnce().then(() => refreshPendingCount()), 1000 * 60)
+    return () => {
+      window.removeEventListener('online', onlineHandler)
+      clearInterval(interval)
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -220,6 +253,15 @@ export function QRProvider({ children }) {
       amount: Number(record.loggedHours || 0) * Number(record.rate ?? departmentRate),
     }
     setAttendanceRecords((current) => [payload, ...current])
+    // enqueue for offline sync
+    try {
+      const deviceId = window.localStorage.getItem('tagum_device_id')
+      enqueueScan({ id: payload.id, leadmanId: payload.leadmanId, raw: null, meta: payload, scannedAt: payload.leadmanVerifiedAt, deviceId })
+        .then(() => refreshPendingCount())
+        .catch(() => {})
+    } catch (e) {
+      // ignore in non-browser
+    }
     return id
   }
 
@@ -232,7 +274,12 @@ export function QRProvider({ children }) {
   }
 
   function submitScan(record) {
-    return recordAttendanceScan(record)
+    const id = recordAttendanceScan(record)
+    // try immediate sync if online
+    try {
+      trySyncOnce().then(() => refreshPendingCount())
+    } catch {}
+    return id
   }
 
   function approveByLeadman(id, leadmanId) {
@@ -468,6 +515,8 @@ export function QRProvider({ children }) {
         isPayslipReleased,
         getEmployeePayments,
         getFinancePayments,
+        syncPending,
+        syncNow: async () => { const r = await trySyncOnce(); await refreshPendingCount(); return r },
         formatDateTime,
         periodLabel,
         periodKey,
