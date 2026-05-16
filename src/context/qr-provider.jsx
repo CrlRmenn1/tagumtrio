@@ -131,6 +131,7 @@ const DEFAULT_STATE = {
   departmentRequests: buildDemoDepartmentRequests(),
   attendanceRecords: buildDemoAttendanceRecords(),
   payments: buildDemoPayments(buildDemoAttendanceRecords()),
+  leaveRequests: [],
 }
 
 function loadState() {
@@ -180,11 +181,12 @@ export function QRProvider({ children }) {
   const [departmentRequests, setDepartmentRequests] = useState(initialState.departmentRequests)
   const [attendanceRecords, setAttendanceRecords] = useState(initialState.attendanceRecords)
   const [payments, setPayments] = useState(initialState.payments || [])
+  const [leaveRequests, setLeaveRequests] = useState(initialState.leaveRequests || [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ departmentRequests, attendanceRecords, payments }))
-  }, [departmentRequests, attendanceRecords, payments])
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ departmentRequests, attendanceRecords, payments, leaveRequests }))
+  }, [departmentRequests, attendanceRecords, payments, leaveRequests])
 
   function submitDepartmentRequest(record) {
     const id = `REQ-${Date.now()}`
@@ -245,6 +247,7 @@ export function QRProvider({ children }) {
     setDepartmentRequests([])
     setAttendanceRecords([])
     setPayments([])
+    setLeaveRequests([])
   }
 
   function getEmployeeDepartment(employeeId) {
@@ -256,6 +259,22 @@ export function QRProvider({ children }) {
 
   function getEmployeeDepartmentRequests(employeeId) {
     return departmentRequests.filter((request) => request.employeeId === employeeId)
+  }
+
+  function getEmployeeLeaveRequests(employeeId) {
+    return leaveRequests.filter((r) => r.employeeId === employeeId)
+  }
+
+  function submitLeaveRequest(record) {
+    const id = `LEAVE-${Date.now()}`
+    const payload = {
+      id,
+      ...record,
+      status: 'pending',
+      requestedAt: new Date().toISOString(),
+    }
+    setLeaveRequests((cur) => [payload, ...cur])
+    return id
   }
 
   function getLeadmanDepartmentRequests(department) {
@@ -418,8 +437,10 @@ export function QRProvider({ children }) {
       value={{
         departmentRequests,
         attendanceRecords,
+        leaveRequests,
         submitDepartmentRequest,
         approveDepartmentRequest,
+        submitLeaveRequest,
         recordAttendanceScan,
         approveAttendanceByHead,
         submitScan,
@@ -428,6 +449,7 @@ export function QRProvider({ children }) {
         clearAll,
         getEmployeeDepartment,
         getEmployeeDepartmentRequests,
+        getEmployeeLeaveRequests,
         getLeadmanDepartmentRequests,
         getEmployeeAttendance,
         getLeadmanAttendance,

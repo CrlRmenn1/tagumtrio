@@ -15,18 +15,21 @@ const allNavItems = [
   { name: 'Payroll', href: '/app/payroll', icon: Banknote, roles: ['admin', 'finance'] },
   { name: 'Employees', href: '/app/employees', icon: Users, roles: ['admin', 'hr'] },
   { name: 'Requests', href: '/app/requests', icon: FileSpreadsheet, roles: ['admin', 'hr', 'production_head'] },
-  { name: 'My Portal', href: '/app/portal', icon: QrCode, roles: ['employee'] },
 ]
 
 export default function MainLayout() {
   const { user, logout } = useAuth()
-  const { getEmployeeDepartmentRequests, getEmployeeAttendance, getLeadmanDepartmentRequests, getLeadmanAttendance, getHeadPendingAttendance } = useQr()
+  const { getEmployeeDepartmentRequests, getEmployeeAttendance, getLeadmanDepartmentRequests, getLeadmanAttendance, getHeadPendingAttendance, getFinancePayrollCycles, getFinancePayments } = useQr()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   if (!user) {
     return <Navigate to="/login" replace />
+  }
+
+  if (user.role === 'employee') {
+    return <Navigate to="/app/portal" replace />
   }
 
   const handleLogout = () => {
@@ -38,8 +41,6 @@ export default function MainLayout() {
     ? user.departments
     : [user?.department || 'Sundry']
 
-  const employeeRequestCount = user?.role === 'employee' ? getEmployeeDepartmentRequests(user.id).filter((request) => request.status === 'pending').length : 0
-  const employeeWorkCount = user?.role === 'employee' ? getEmployeeAttendance(user.id).filter((record) => record.status === 'head_verified').length : 0
   const leadmanRequestCount = user?.role === 'leadman'
     ? leadmanDepartments.reduce((sum, department) => sum + getLeadmanDepartmentRequests(department).length, 0)
     : 0
@@ -48,12 +49,7 @@ export default function MainLayout() {
         return sum + getLeadmanAttendance(department).filter((record) => record.status === 'leadman_verified').length
       }, 0)
     : 0
-  const headerCounts = user?.role === 'employee'
-    ? [
-        { label: 'Requests', value: employeeRequestCount },
-        { label: 'Work Logs', value: employeeWorkCount },
-      ]
-    : user?.role === 'leadman'
+  const headerCounts = user?.role === 'leadman'
       ? [
           { label: 'Requests', value: leadmanRequestCount },
           { label: 'Pending', value: leadmanPendingScanCount },
@@ -61,26 +57,6 @@ export default function MainLayout() {
       : []
 
   const notificationItems = useMemo(() => {
-    if (user?.role === 'employee') {
-      return [
-        ...getEmployeeDepartmentRequests(user.id)
-          .filter((request) => request.status === 'pending')
-          .map((request) => ({
-            title: `Department request: ${request.requestedDepartment}`,
-            detail: 'Waiting for leadman approval',
-            meta: request.requestedAt,
-          })),
-        ...getEmployeeAttendance(user.id)
-          .filter((record) => record.status === 'head_verified')
-          .slice(0, 3)
-          .map((record) => ({
-            title: `${record.department} work log`,
-            detail: `${Number(record.loggedHours || 0).toFixed(1)} hrs • ₱${Number(record.amount || 0).toLocaleString()}`,
-            meta: record.scannedAt,
-          })),
-      ]
-    }
-
     if (user?.role === 'leadman') {
       return [
         ...leadmanDepartments.flatMap((department) => getLeadmanDepartmentRequests(department))
@@ -109,11 +85,29 @@ export default function MainLayout() {
       }))
     }
 
+    if (user?.role === 'finance') {
+      const payrollCycles = getFinancePayrollCycles()
+      const recentPayments = getFinancePayments().slice(0, 3)
+
+      return [
+        ...payrollCycles.slice(0, 3).map((cycle) => ({
+          title: `Review ${cycle.label}`,
+          detail: `${cycle.employeeCount} employees • ₱${cycle.totalAmount.toLocaleString()} ready for release`,
+          meta: cycle.latestDate,
+        })),
+        ...recentPayments.map((payment) => ({
+          title: `Payslip released for ${payment.employeeId}`,
+          detail: `₱${Number(payment.amount || 0).toLocaleString()} • cycle ${payment.period}`,
+          meta: payment.releasedAt,
+        })),
+      ]
+    }
+
     return []
   }, [
-    getEmployeeAttendance,
-    getEmployeeDepartmentRequests,
     getHeadPendingAttendance,
+    getFinancePayments,
+    getFinancePayrollCycles,
     getLeadmanAttendance,
     getLeadmanDepartmentRequests,
     leadmanDepartments,

@@ -2,7 +2,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import QRProvider from './context/qr-provider'
 import LeadmanDashboard from './pages/leadman/LeadmanDashboard'
-import LeadmanProduction from './pages/leadman/LeadmanProduction'
+import LeadmanLayout from './components/layout/LeadmanLayout'
+import LeadmanTransfers from './pages/leadman/LeadmanTransfers'
+import LeadmanWorkers from './pages/leadman/LeadmanWorkers'
+import LeadmanDailyReport from './pages/leadman/LeadmanDailyReport'
 import MainLayout from './components/layout/MainLayout'
 import Login from './pages/Login'
 import RoleDashboard from './pages/RoleDashboard'
@@ -13,6 +16,7 @@ import EmployeePayroll from './pages/finance/EmployeePayroll'
 import PayrollPeriodView from './pages/finance/PayrollPeriodView'
 import FinanceArchive from './pages/finance/FinanceArchive'
 import EmployeeDirectory from './pages/HR/EmployeeDirectory'
+import EmployeeLayout from './components/layout/EmployeeLayout'
 import EmployeeDashboard from './pages/employee/EmployeeDashboard'
 import MyAttendance from './pages/employee/MyAttendance'
 import MyPayslips from './pages/employee/MyPayslips'
@@ -28,6 +32,14 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<RoleDashboard />} />
 
+          <Route path="/app/portal/*" element={<EmployeeLayout />}>
+            <Route index element={<EmployeeDashboard />} />
+            <Route path="leaves" element={<MyAttendance />} />
+            <Route path="payslips" element={<MyPayslips />} />
+            <Route path="payslips/:id" element={<ViewPayslip />} />
+            <Route path="*" element={<Navigate to="/app/portal" replace />} />
+          </Route>
+
           <Route path="/app/*" element={<MainLayout />}>
             <Route index element={<RoleDashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
@@ -39,15 +51,15 @@ export default function App() {
             <Route path="payroll/employee/:employeeId/period/:periodKey" element={<PayrollPeriodView />} />
             <Route path="employees" element={<EmployeeDirectory />} />
             <Route path="requests" element={<MyAttendance />} />
-            <Route path="portal" element={<EmployeeDashboard />} />
-            <Route path="portal/leaves" element={<MyAttendance />} />
-            <Route path="portal/payslips" element={<MyPayslips />} />
-            <Route path="portal/payslips/:id" element={<ViewPayslip />} />
             <Route path="*" element={<Navigate to="dashboard" replace />} />
           </Route>
 
-          <Route path="/app/leadman" element={<MainLayout />}>
-            <Route index element={<LeadmanProduction />} />
+          <Route path="/app/leadman/*" element={<LeadmanLayout />}>
+            <Route index element={<LeadmanDashboard />} />
+            <Route path="transfers" element={<LeadmanTransfers />} />
+            <Route path="workers" element={<LeadmanWorkers />} />
+            <Route path="report" element={<LeadmanDailyReport />} />
+            <Route path="*" element={<Navigate to="/app/leadman" replace />} />
           </Route>
 
           <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
